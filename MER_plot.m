@@ -159,14 +159,16 @@ function get_point_coord(aH,event)
         set(gca,'Tag','traj_axes');
         
         daH = findobj(f,'Tag','disp_axes');
-        axes(daH);        
+        axes(daH);      
         ApmDataTable = getappdata(f,'ApmDataTable');
+        apmPath = getappdata(f,'apmPath');
+        
         % TODO make this better?
         for i = 1:length(ApmDataTable.lt)
             if (x == ApmDataTable.lt(i) && y == ApmDataTable.ap(i) && z == ApmDataTable.ax(i))
 %                     xlim(daH,[ApmDataTable(i).start ApmDataTable(i).end])
                     
-                    t = APMReadData([apm '\GPi Left\Pass 1\C\Snapshot - 3600.0 sec ' num2str(i) '\WaveformData-Ch1.apm']);
+                    t = APMReadData([apmPath '\GPi Left\Pass 1\C\Snapshot - 3600.0 sec ' num2str(i) '\WaveformData-Ch1.apm']);
                     dist = t.drive_data.depth;
                     channel = t.channels(1);
                     FS = channel.sampling_frequency;
