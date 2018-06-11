@@ -1,4 +1,5 @@
-function [x,y,z] = plotter1(CrwData,depths)
+function [lt,ap,ax] = plotter1(CrwData,DbsData,depths,aH)
+
 max_depth = max(depths);
 T = max_depth - depths;
 CTR = CrwData.clineangle ;
@@ -14,3 +15,7 @@ for i = 1:length(T)
     y(i) = (T(i) * cosd(ACPC) * cosd(CTR)) + ApTargPoint;
     z(i) = (T(i) * sind(ACPC) * cosd(CTR)) + AxTargPoint;
 end
+
+lt = x;
+ap = y;
+ax = z;

@@ -1,7 +1,4 @@
+v0.5
 
-
-
-TODO 4. template and fill stim at end of pass
-
-
-TODO 7. repair comments and error system
+dynamic number of APM sections
+user-selectable MER_gui function (radio buttons)

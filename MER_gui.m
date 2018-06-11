@@ -22,7 +22,7 @@ function varargout = MER_gui(varargin)
 
 % Edit the above text to modify the response to help MER_gui
 
-% Last Modified by GUIDE v2.5 27-May-2018 22:47:36
+% Last Modified by GUIDE v2.5 11-Jun-2018 11:12:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -125,13 +125,16 @@ function convert_button_Callback(hObject, eventdata, handles)
 % hObject    handle to convert_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+    status = 1;
     % if no destination selected, throw error
-    if strcmp(get(handles.destination_disp,'String'),'...')
+    if strcmp(get(handles.destination_disp,'String'),'...') && get(handles.xls_radio,'Value')
         msgbox('You must set an output destination', 'Error','error');
         return
     end
     % if no files selected, throw error
-    if strcmp(get(handles.dbs_disp,'String'),'...') || strcmp(get(handles.crw_disp,'String'),'...')
+    if strcmp(get(handles.dbs_disp,'String'),'...') ...
+            || strcmp(get(handles.crw_disp,'String'),'...') ...
+            || (strcmp(get(handles.apm_disp,'String'),'...') && get(handles.xls_radio,'Value'))
         msgbox('You must select files to convert', 'Error','error');
         return
     end
@@ -142,26 +145,7 @@ function convert_button_Callback(hObject, eventdata, handles)
     crw = get(handles.crw_disp, 'String');
     apm = get(handles.apm_disp, 'String');
     dest = get(handles.destination_disp,'String');
-    % being conversion with those files/destination as arguments
-    [status,comment] = begin_conversion(dbs,crw,apm,dest);
-    if status
-        msgbox('Conversion complete', 'Success')
-    else
-        msgbox(['Conversion was unsuccessful' newline newline 'Reason:' newline comment], 'Error','error');
-    end
-    
-    
-function toggle_buttons(state,handles)
-    % change all button states
-    set(handles.dbs_button,'enable',state);
-    set(handles.crw_button,'enable',state);
-    set(handles.change_dir_button,'enable',state);
-    set(handles.folder_button,'enable',state);
-    set(handles.convert_button,'enable',state);
-    
-function [status,comment] = begin_conversion(dbs,crw,apm,dest)
-    % load Headers
-    load('data\Headers.mat','Headers');
+    % build structs
     % create File struct pointing to dest
     [path,name,ext] = fileparts(dest);
     File = struct('path',path,'name',name,'type',ext,'full',dest);
@@ -176,8 +160,44 @@ function [status,comment] = begin_conversion(dbs,crw,apm,dest)
         copyfile(crw,[path '\' name '.crw']);
     end
     CrwData = extract_crw_data(crw);
+    % load Headers
+    load('data\Headers.mat','Headers');
+    % being conversion with those files/destination as arguments
+    if get(handles.xls_radio,'Value')
+        [status,comment] = mer_to_xls(Headers,DbsData,CrwData,File);
+        if status
+            msgbox('.xls Conversion complete', 'Success')
+        else
+            msgbox(['.xls Conversion was unsuccessful' newline newline 'Reason:' newline comment], 'Error','error');
+        end
+    end
+    if status && get(handles.plot_radio,'Value')
+        close(MER_gui)
+        MER_plot(CrwData,DbsData,apm);
+    end
     
-    [status,comment] = mer_to_xls(Headers,DbsData,CrwData,File);
     
-    close(MER_gui)
-    MER_plot(CrwData,DbsData,apm);
+function toggle_buttons(state,handles)
+    % change all button states
+    set(handles.dbs_button,'enable',state);
+    set(handles.crw_button,'enable',state);
+    set(handles.change_dir_button,'enable',state);
+    set(handles.folder_button,'enable',state);
+    set(handles.convert_button,'enable',state);
+
+% --- Executes on button press in xls_radio.
+function xls_radio_Callback(hObject, eventdata, handles)
+% hObject    handle to xls_radio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of xls_radio
+
+
+% --- Executes on button press in plot_radio.
+function plot_radio_Callback(hObject, eventdata, handles)
+% hObject    handle to plot_radio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of plot_radio

@@ -1,0 +1,4 @@
+TODO 1. template and fill stim at end of pass - how match stim to pass?
+TODO 2. repair comments and error system
+TODO 3. when do passes end in apm sections?
+TODO 4. naming format of apm folders?
