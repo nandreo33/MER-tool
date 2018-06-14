@@ -76,8 +76,6 @@ ApmDataTable.lt = lt;
 ApmDataTable.ap = ap;
 ApmDataTable.ax = ax;
 
-lH(1) = plot3(taH,ApmDataTable.lt,ApmDataTable.ap,ApmDataTable.ax,'-s');
-set(lH(1),'hittest','off');
 set(taH,'ButtonDownFcn',@get_point_coord);
 
 setappdata(hObject,'ApmDataTable',ApmDataTable);

@@ -21,6 +21,10 @@ Headers.recordingTrack = {
     'Recording Grade' 'Site/Time' 'Depth (mm)' 'Cell Location' 'Cell Location Certain' 'Cell Type' 'Body Part Location' 'Body Part Movement' 'Comments'
     };
 
+Headers.postRecordingStim = {
+    'Depth (mm)' 'Stimulation Type' 'Current' 'Response' 'Description of Sensation'
+    };
+
 Headers.updrsHeaders = {
     %Patient Info
     'Last Name:'        '' '' '' '' '';

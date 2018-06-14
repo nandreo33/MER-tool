@@ -171,6 +171,8 @@ function convert_button_Callback(hObject, eventdata, handles)
             msgbox(['.xls Conversion was unsuccessful' newline newline 'Reason:' newline comment], 'Error','error');
         end
     end
+    % toggle buttons on after conversion
+    toggle_buttons('on',handles);
     if status && get(handles.plot_radio,'Value')
         close(MER_gui)
         MER_plot(CrwData,DbsData,apm);
