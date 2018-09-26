@@ -1,4 +1,0 @@
-v0.5
-
-dynamic number of APM sections
-user-selectable MER_gui function (radio buttons)

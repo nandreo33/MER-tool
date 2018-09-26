@@ -58,6 +58,14 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+%display logo
+axes(handles.logo_disp)
+matlabImage = imread('data\Fixel Logo (2).jpg');
+image(matlabImage)
+axis off
+axis image
+
+%run initialization function
 status = mer_to_xls_setup();
 if ~status
     msgbox('Setup failure', 'Error','error');
@@ -83,9 +91,12 @@ function dbs_button_Callback(hObject, eventdata, handles)
 % hObject    handle to cbs_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-    [file,path] = uigetfile({'*.dbs';'*.mat'},'DBS File Selection','C:\');
+    [file,path] = uigetfile({'*.dbs'},'DBS File Selection','C:\');
     if file ~= 0
         set(handles.dbs_disp,'String',[path file]);
+        if strcmp(get(handles.crw_disp,'String'),'...') && strcmp(get(handles.apm_disp,'String'),'...')
+            smart_path(path,handles);
+        end
     end
 
 % --- Executes on button press in dbs_button.
@@ -96,6 +107,9 @@ function crw_button_Callback(hObject, eventdata, handles)
     [file,path] = uigetfile({'*.crw'},'CRW File Selection','C:\');
     if file ~= 0
         set(handles.crw_disp,'String',[path file]);
+        if strcmp(get(handles.dbs_disp,'String'),'...') && strcmp(get(handles.apm_disp,'String'),'...')
+            smart_path(path,handles);
+        end
     end
         
 % --- Executes on button press in folder_button.
@@ -103,10 +117,12 @@ function folder_button_Callback(hObject, eventdata, handles)
 % hObject    handle to folder_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
     path = uigetdir('Data Folder Selection','APM Folder Selection');
     if path ~= 0
         set(handles.apm_disp,'String',path);
+        if strcmp(get(handles.dbs_disp,'String'),'...') && strcmp(get(handles.crw_disp,'String'),'...')
+            smart_path(path,handles);
+        end
     end
 
 % --- Executes on button press in change_dir_button.
@@ -140,7 +156,7 @@ function convert_button_Callback(hObject, eventdata, handles)
     end
     % toggle buttons off during conversion
     toggle_buttons('off',handles);
-    % get data files and output destination
+    % get user selections
     dbs = get(handles.dbs_disp, 'String');
     crw = get(handles.crw_disp, 'String');
     apm = get(handles.apm_disp, 'String');
@@ -149,17 +165,8 @@ function convert_button_Callback(hObject, eventdata, handles)
     % create File struct pointing to dest
     [path,name,ext] = fileparts(dest);
     File = struct('path',path,'name',name,'type',ext,'full',dest);
-    % load DbsData
-    [path,name,ext] = fileparts(dbs);
-    if ext == '.dbs'
-        copyfile(dbs,[path '\' name '.mat']);
-    end
-    DbsData = load([path '\' name '.mat']);
-    % load CrwData
-    if ext == '.txt'
-        copyfile(crw,[path '\' name '.crw']);
-    end
-    CrwData = extract_crw_data(crw);
+    % build data structures
+    [DbsData,CrwData] = build_mer_structs(dbs,crw);
     % load Headers
     load('data\Headers.mat','Headers');
     % being conversion with those files/destination as arguments
@@ -175,7 +182,7 @@ function convert_button_Callback(hObject, eventdata, handles)
     toggle_buttons('on',handles);
     if status && get(handles.plot_radio,'Value')
         close(MER_gui)
-        MER_plot(CrwData,DbsData,apm);
+        MER_plot(CrwData,DbsData,apm,dest);
     end
     
     

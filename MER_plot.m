@@ -22,7 +22,7 @@ function varargout = MER_plot(varargin)
 
 % Edit the above text to modify the response to help MER_plot
 
-% Last Modified by GUIDE v2.5 31-May-2018 13:09:39
+% Last Modified by GUIDE v2.5 11-Sep-2018 23:14:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,32 +61,52 @@ guidata(hObject, handles);
 CrwData = varargin{1}
 DbsData = varargin{2}
 apmPath = varargin{3}
+dest = varargin{4}
 
 daH = handles.disp_axes;
+taH = handles.traj_axes;
 
 % plot APM data
-
 ApmDataTable = build_apm_table(apmPath);
 
-taH = handles.traj_axes;
+%TODO uncomment this
+%{
+if size(ApmDataTable,3) < size(DbsData.data1,3)
+    ApmDataTable = repair_apm_table(ApmDataTable,DbsData);
+end
+%}
+
+if isempty(ApmDataTable)
+    close;
+    MER_gui()
+end
+
+%label axes of traj_axes
+xlabel(taH,'LT');
+ylabel(taH,'AP');
+zlabel(taH,'AX');
 hold(taH,'on');
 
-[lt,ap,ax] = plotter1(CrwData,DbsData,ApmDataTable.depth,taH);
-ApmDataTable.lt = lt;
-ApmDataTable.ap = ap;
-ApmDataTable.ax = ax;
+ApmDataTable = plotter1(CrwData,DbsData,ApmDataTable,taH);
+grid(taH,'on');
 
-set(taH,'ButtonDownFcn',@get_point_coord);
+%set the button down function of traj_axes
+set(taH,'ButtonDownFcn',@mer_plot_callback);
 
+%store all critical objects as GUI data
 setappdata(hObject,'ApmDataTable',ApmDataTable);
 setappdata(hObject,'apmPath',apmPath);
 setappdata(hObject,'CrwData',CrwData);
 setappdata(hObject,'DbsData',DbsData);
+setappdata(hObject,'dest',dest);
 
 % TODO why does this need to be here?
 set(gca,'Tag','disp_axes');
 
-get(hObject,'children')
+%fill patient info into GUI
+set(handles.name_disp,'String',[DbsData.lastname ', ' DbsData.firstname DbsData.middlename]);
+set(handles.surgery_disp,'String',DbsData.surgery);
+set(handles.date_disp,'String',DbsData.dos);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -107,88 +127,38 @@ function varargout = MER_plot_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on button press in rotate_button.
-function rotate_button_Callback(hObject, eventdata, handles)
-% hObject    handle to rotate_button (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-val = get(hObject,'Value');
-if val
-    rotate3d(handles.traj_axes,'on');
-elseif ~val
-    rotate3d(handles.traj_axes,'off');
-end
-
-
-% --- Executes on button press in zoom_button.
-function zoom_button_Callback(hObject, eventdata, handles)
-% hObject    handle to zoom_button (see GCBO)
+% --- Executes on selection change in display_style.
+function display_style_Callback(hObject, eventdata, handles)
+% hObject    handle to display_style (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of zoom_button
-val = get(hObject,'Value');
-if val
-    zoom(handles.traj_axes,'on');
-elseif ~val
-    zoom(handles.traj_axes,'off');
+% Hints: contents = cellstr(get(hObject,'String')) returns display_style contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from display_style
+
+if isappdata(handles.traj_axes,'SectionPath')
+    sectionPath = getappdata(handles.traj_axes,'SectionPath');
+    style = get(handles.display_style,'Value');
+    plot_section_data(handles.disp_axes,sectionPath,style);
 end
 
-function get_point_coord(aH,event)
-    DISTANCE_THRESHOLD = 200;
-    f = ancestor(aH,'figure');
-    ptH = getappdata(aH,'CurrentSelection');
-    lH = findobj(aH,'Type','line');
-    pt = get(aH,'CurrentPoint');
-    
-%     plot3(aH,pt(:,1),pt(:,2),pt(:,3),'-r')
-    
-    lPts = [lH.XData;lH.YData;lH.ZData]';
-    v1 = pt(1,:);
-    v2 = pt(2,:);
-    v1 = repmat(v1,size(lPts,1),1);
-    v2 = repmat(v2,size(lPts,1),1);    a = v1 - v2;
-    b = lPts - v2;
-    d = sqrt(sum(cross(a,b,2).^2,2)) ./ sqrt(sum(a.^2,2));
-    [m,iClose] = min(d);
-    
-    if m < DISTANCE_THRESHOLD
-        x = lPts(iClose,1);
-        y = lPts(iClose,2);
-        z = lPts(iClose,3);
-        delete(ptH);
-        axes(aH);
-        ptH = plot3(aH,x,y,z,'rx');
-        setappdata(aH,'CurrentSelection',ptH);
-        set(gca,'Tag','traj_axes');
-        
-        daH = findobj(f,'Tag','disp_axes');
-        axes(daH);      
-        ApmDataTable = getappdata(f,'ApmDataTable');
-        
-        % TODO make this better?
-        for i = 1:length(ApmDataTable.lt)
-            if (x == ApmDataTable.lt(i) && y == ApmDataTable.ap(i) && z == ApmDataTable.ax(i))
-%                     xlim(daH,[ApmDataTable(i).start ApmDataTable(i).end])
-                    
-                    t = APMReadData(ApmDataTable.path(i));
-                    dist = t.drive_data.depth;
-                    channel = t.channels(1);
-                    FS = channel.sampling_frequency;
-                    data = channel.continuous * channel.voltage_calibration;
-                    start_trial = channel.start_trial;
-                    time = (start_trial:(length(data)+start_trial-1))/FS;
-                    disp(dist)
-                    disp(ApmDataTable.depth(i))
-                    plot(daH,time,data)
-                    
-                    depthH = findobj(f,'Tag','depth_disp');
-                    set(depthH,'String',['Depth = ' num2str(ApmDataTable.depth(i)) 'um']);
-                
-                break
-            end
-        end      
-        
-        set(gca,'Tag','disp_axes');
-    end
-    
+
+% --- Executes during object creation, after setting all properties.
+function display_style_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to display_style (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in export_button.
+function export_button_Callback(hObject, eventdata, handles)
+% hObject    handle to export_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+export_point_data(handles);

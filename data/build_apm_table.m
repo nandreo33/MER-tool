@@ -1,35 +1,87 @@
 function ApmDataTable = build_apm_table(apmPath)
 %BUILD_APM_TABLE
-%
-%TODO variable # of sections
+%{
+    Starts ApmDataTable by reading files and filling depth and path
+    columns. If no APM files are found in the folder, will attempt to find
+    GLR file at that path and extract APM files from it. x,y,z fields are
+    filled by plotter1 function
+ARGS
+    apmPath: path to folder containing glr file or extracted apm files
+RETURNS
+    ApmDataTable: cell array with entries defined below:
 
-tF = dir([apmPath '\**\Waveform*.apm']);
+            ApmDataTable{section,field,pass}
 
-folder = {tF.folder};
-folder = natsort(folder); % library
+             1: depth
+             2: path
+            (3: x)
+            (4: y)
+            (5: z)
+%}
 
-N = size(folder,2)-1; %FIXME this ignores sec 0
-startN = 1;
-sections = startN:N;
-
-% initialise very informative progress bar
-w = waitbar(0,sprintf('Extracting APM data (1/%d)',N),'Name','Progress');
-% remove any unintended formatting in progress bar text
-myString = findall(w,'String','Starting Conversion');
-set(myString,'Interpreter','none');
-
-for i = 1:length(sections)
-    waitbar(i/N,w,sprintf('Extracting APM data (%d/%d)',i,N));
-    section = sections(i);
-    path = string(strcat(folder(i+1),'\WaveformData-Ch1.apm'));
-    t = APMReadData(path); %FIXME will this work?
-    dist = t.drive_data.depth;
-    disp(dist)
-        % TODO PREALLOCATE THIS
-    ApmDataTable.depth(section) = dist(2);
-    ApmDataTable.path(section) = path;
+if ~nargin
+    apmPath = uigetdir('C:\','APM Folder');
 end
 
-close(w)
+%get initial file list
+tF = dir([apmPath '\*.apm']);
+
+%if no files found,
+if isempty(tF)
+    % look for GLR files at apmPath
+    tGLR = dir([apmPath '\*.glr']);
+    answer = questdlg(['No .apm files found at that location. Do you want to use data from ' tGLR.name '? (This may take a while.)'],'MER tool');
+    if strcmp(answer,'No') || strcmp(answer,'Cancel')
+        ApmDataTable = [];
+        f = errordlg('No .apm files given');
+        waitfor(f);
+        return
+    end
+    w = waitbar(0,'Unpacking GLR file...','Name','Progress');
+    
+    ReadGLR_Exporter(['"' tGLR.folder '\' tGLR.name '"'],['"' tGLR.folder '"'],'"apm"','"distancefromzero"');
+    
+    close(w);
+    
+    % try again for a file list
+    tF = dir([apmPath '\*.apm']);
+end
+
+%TODO third dimension is fixed. make this a better data structure.
+ApmDataTable = cell(size(tF,1),5,2);
+sprintf('%s',tF.name)
+
+iPass = 1;
+expr = sprintf('(?<=^|.apm)[A-Za-z-_]+ [A-Za-z]+_Pass %d_[A-Za-z0-9]+_Snapshot - 3600.0 sec [0-9]+_.[0-9.]*apm',iPass);
+filename = regexp([tF.name],expr,'match');
+
+while ~isempty(filename)
+    filename = natsort(filename);
+    
+    N = size(filename,2);
+
+    % initialise very informative progress bar
+    w = waitbar(0,sprintf('Extracting APM data (1/%d)',N),'Name','Progress');
+    % remove any unintended formatting in progress bar text
+    myString = findall(w,'String','Starting Conversion');
+    set(myString,'Interpreter','none');
+
+    for i = 1:N
+        waitbar(i/N,w,sprintf('Extracting APM data (%d/%d)',i,N));
+        path = string(strcat(apmPath,'\',filename(i)));
+        t = APMReadData(path);
+        dist = t.drive_data.depth;
+        % if depth is empty, skip them
+        if ~isempty(dist) % TODO does this temporary fix work?
+            ApmDataTable(i,1,iPass) = {dist(2)/1000}; %depth
+            ApmDataTable(i,2,iPass) = {path}; %path
+        end
+    end
+    
+    iPass = iPass + 1;
+    expr = sprintf('(?<=^|.apm)[A-Za-z-_]+ [A-Za-z]+_Pass %d_[A-Za-z0-9]+_Snapshot - 3600.0 sec [0-9]+_.[0-9.]*apm',iPass);
+    filename = regexp([tF.name],expr,'match');
+
+    close(w)
 end
 

@@ -1,72 +1,71 @@
-function [lt,ap,ax] = plotter1(CrwData,DbsData,depths,aH)
+function ApmDataTable = plotter1(CrwData,DbsData,ApmDataTable,aH)
+%{
+PLOTTER1
+    Fills columns 3,4,5 of ApmDataTable with x,y,z coordinates that
+    correspond to the depths in column 1, using the trajectories
+    defined in the CrwData. Then plots those x,y,z
+ARGS
+    CrwData: structure, created by extract_crw_data
+    DbsData: structure, contains MER data
+    ApmDataTable: structure, created by build_apm_table
+    aH: handle of axes to plot 3D trajectory on
+RETURNS
+    ApmDataTable: structure, 
+%}
 
-%TODO preallocation
+%get number of passes
+nPass = size(DbsData.trackinfo,1);
 
-%extract T values
-max_depth = max(depths);
-T = max_depth - depths;
+%preallocate space for entry point arrays
+LtEntryPoint = zeros(nPass,1);
+ApEntryPoint = zeros(nPass,1);
+AxEntryPoint = zeros(nPass,1);
 
-%extract crw data
+%calculate entry point coordinates from CRW and DBS data
+%       CrwData.entrypoint(n) contains AP/LT/AX base coordinates
+%       DbsData.trackinfo(i,n) indicates positive (2) or negative (3) adjustment
+%       DbsData.trackinfo(i,n+1) contains adjustment distance
+for i = 1:nPass
+    if (DbsData.trackinfo(i,2) == 2)
+        ApEntryPoint(i) = CrwData.entrypoint(1) + DbsData.trackinfo(i,3);
+    elseif (DbsData.trackinfo(i,2) == 3)
+        ApEntryPoint(i) = CrwData.entrypoint(1) - DbsData.trackinfo(i,3);
+    end
+    if (DbsData.trackinfo(i,4) == 2)
+        LtEntryPoint(i) = CrwData.entrypoint(2) + DbsData.trackinfo(i,5);
+    elseif (Dbs.trackinfo(i,4) == 3)
+        LtEntryPoint(i) = CrwData.entrypoint(2) - DbsData.trackinfo(i,5);
+    end
+    AxEntryPoint(i) = CrwData.entrypoint(3);
+end
+
+%extract crw data for calculating xyz coordinates
 CTR = CrwData.clineangle ;
 ACPC = CrwData.acpcangle ;
 
-%extract track info
-%subtract or add?
-nPass = size(DbsData.trackinfo,1);
-LtTargPoint = zeros(1,nPass);
-ApTargPoint = zeros(1,nPass);
-AxTargPoint = zeros(1,nPass);
-for i = 1:nPass
-    if (DbsData.trackinfo(i,2) == 2)
-        ApTargPoint(i) = CrwData.functargpoint(1) + 1000*DbsData.trackinfo(i,3);
-    elseif (DbsData.trackinfo(i,2) == 3)
-        ApTargPoint(i) = CrwData.functargpoint(1) - 1000*DbsData.trackinfo(i,3);
+for iPass = 1:nPass
+    x = [];
+    y = [];
+    z = [];
+    
+    %extract T values (depths from ApmDataTable column 1)
+    T = [ApmDataTable{:,1,iPass}];
+    
+    for iPoint = 1:size(T,2)
+        % skip empty depths, don't break on empty entries
+        if isempty(ApmDataTable{iPoint,1,iPass})
+            continue % this was break, why?
+        end
+        x{iPoint,1} = LtEntryPoint(iPass) -(T(iPoint) * sind(CTR));
+        y{iPoint,1} = ApEntryPoint(iPass) - (T(iPoint) * cosd(ACPC) * cosd(CTR)) ;
+        z{iPoint,1} = AxEntryPoint(iPass) - (T(iPoint) * sind(ACPC) * cosd(CTR));
+        ApmDataTable{iPoint,3,iPass} = x{iPoint,1};
+        ApmDataTable{iPoint,4,iPass} = y{iPoint,1};
+        ApmDataTable{iPoint,5,iPass} = z{iPoint,1};
     end
-    if (DbsData.trackinfo(i,4) == 2)
-        LtTargPoint(i) = CrwData.functargpoint(2) + 1000*DbsData.trackinfo(i,5);
-    elseif (Dbs.trackinfo(i,4) == 3)
-        LtTargPoint(i) = CrwData.functargpoint(2) - 1000*DbsData.trackinfo(i,5);
-    end
-    AxTargPoint(i) = CrwData.functargpoint(3);
-end
-
-prevT = max_depth;
-iPass = 1;
-iPoint = 1;
-
-lt = [];
-ap = [];
-ax = [];
-
-x = [];
-y = [];
-z = [];
-
-%subtract or add?
-for i = 1:length(T)
-    if (prevT < T(i) || i == length(T))
-        fprintf('plotting pass %d\n',iPass)
-        lH = plot3(aH,x,y,z,'-s');
-        set(lH,'hittest','off');
-        lt = [lt x];
-        ap = [ap y];
-        ax = [ax z];
-        
-        x = [];
-        y = [];
-        z = [];
-        
-        iPoint = 1;
-        
-        iPass = iPass + 1;
-        x(iPoint) = LtTargPoint(iPass) -(T(i) * sind(CTR)) ; 
-        y(iPoint) = (T(i) * cosd(ACPC) * cosd(CTR)) + ApTargPoint(iPass);
-        z(iPoint) = (T(i) * sind(ACPC) * cosd(CTR)) + AxTargPoint(iPass);
-    else
-        x(iPoint) = LtTargPoint(iPass) -(T(i) * sind(CTR)) ; 
-        y(iPoint) = (T(i) * cosd(ACPC) * cosd(CTR)) + ApTargPoint(iPass);
-        z(iPoint) = (T(i) * sind(ACPC) * cosd(CTR)) + AxTargPoint(iPass);
-    end
-    iPoint = iPoint + 1;
-    prevT = T(i);
+    
+    %plot each x,y,z after calculating
+    fprintf('plotting pass %d\n',iPass)
+    lH = plot3(aH,cell2mat(x),cell2mat(y),cell2mat(z),'-s');
+    set(lH,'hittest','off');
 end
