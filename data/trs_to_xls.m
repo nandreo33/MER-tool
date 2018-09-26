@@ -81,7 +81,25 @@ RETURNS
             close(w);
             return
         end
-        cellIndex = cellIndex + size(DbsData.data1,1) + 12;
+        cellIndex = cellIndex + size(DbsData.data1,1) + 8;
+        status = create_post_template(Headers,cellIndex,File);
+        if ~status
+            comment = [File.name ': trs_to_xls create_post_template ' iTrack ' failed'];
+            close(w);
+            return
+        end
+        if size(DbsData.data21,3) >= iTrack
+            if ~isempty(DbsData.data21(1,1,iTrack))
+                status = fill_post_template(DbsData,cellIndex,iTrack,File);
+                if ~status
+                    comment = [File.name ': trs_to_xls fill_post_template ' iTrack ' failed'];
+                    close(w);
+                    return
+                end
+                cellIndex = cellIndex + size(DbsData.data21,1);
+            end
+        end
+        cellIndex = cellIndex + 2;
     end
     
     waitbar(.75,w,'Filling Stimulation Pass Data');
