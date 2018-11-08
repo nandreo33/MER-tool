@@ -13,7 +13,7 @@ RETURNS
 f = ancestor(aH,'figure');
 ApmDataTable = getappdata(f,'ApmDataTable');
 DbsData = getappdata(f,'DbsData');
-depth = ApmDataTable{iPoint,1,iPass};
+depth = ApmDataTable{iPass}.depth(iPoint);
 
 flag = 0;
 
