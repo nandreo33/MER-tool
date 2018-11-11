@@ -1,7 +1,2 @@
-
-TODO 2. repair comments and error system
-TODO 3. when do passes end in apm sections?
-TODO 4. naming format of apm folders?
-
-1. Int Side?
-2. lt-ap-ax -> x-y-z?
+TODO 1. select ignore or linear for out of range depths
+TODO 2. firing rate display

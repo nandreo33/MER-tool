@@ -1,4 +1,4 @@
-function ApmDataTable = build_apm_table(apmPath)
+function ApmDataTable = build_apm_table(glrPath)
 %BUILD_APM_TABLE
 %{
     Starts ApmDataTable by reading files and filling depth and path
@@ -19,16 +19,16 @@ RETURNS
 %}
 
 if ~nargin
-    apmPath = uigetdir('C:\','APM Folder');
+    glrPath = uigetdir('C:\','APM Folder');
 end
 
 %get initial file list
-tF = dir([apmPath '\*.apm']);
+tF = dir([glrPath '\*.apm']);
 
 %if no files found,
 if isempty(tF)
     % look for GLR files at apmPath
-    tGLR = dir([apmPath '\*.glr']);
+    tGLR = dir([glrPath '\*.glr']);
     answer = questdlg(['No .apm files found at that location. Do you want to use data from ' tGLR.name '? (This may take a while.)'],'MER tool');
     if strcmp(answer,'No') || strcmp(answer,'Cancel')
         ApmDataTable = [];
@@ -43,7 +43,7 @@ if isempty(tF)
     close(w);
     
     % try again for a file list
-    tF = dir([apmPath '\*.apm']);
+    tF = dir([glrPath '\*.apm']);
 end
 
 talloc = table('Size',[12 5],'VariableTypes',{'double', 'string', 'double', 'double', 'double'},'VariableName',{'depth','path','x','y','z'});
@@ -69,7 +69,7 @@ while ~isempty(filename)
 
     for i = 1:N
         waitbar(i/N,w,sprintf('Extracting APM data (%d/%d)',i,N));
-        path = string(strcat(apmPath,'\',filename(i)));
+        path = string(strcat(glrPath,'\',filename(i)));
         t = APMReadData(path);
         dist = t.drive_data.depth;
         if i > size(temp,1)
@@ -93,6 +93,4 @@ while ~isempty(filename)
 
     close(w)
 end
-
-ApmDataTable = repair_apm_table(ApmDataTable,'linear');
 
