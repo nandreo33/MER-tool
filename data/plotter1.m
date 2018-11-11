@@ -49,23 +49,23 @@ for iPass = 1:nPass
     z = [];
     
     %extract T values (depths from ApmDataTable column 1)
-    T = [ApmDataTable{:,1,iPass}];
+    T = [ApmDataTable{iPass}.depth];
     
-    for iPoint = 1:size(T,2)
+    for iPoint = 1:size(T,1)
         % skip empty depths, don't break on empty entries
-        if isempty(ApmDataTable{iPoint,1,iPass})
-            continue % this was break, why?
-        end
-        x{iPoint,1} = LtEntryPoint(iPass) -(T(iPoint) * sind(CTR));
-        y{iPoint,1} = ApEntryPoint(iPass) - (T(iPoint) * cosd(ACPC) * cosd(CTR)) ;
-        z{iPoint,1} = AxEntryPoint(iPass) - (T(iPoint) * sind(ACPC) * cosd(CTR));
-        ApmDataTable{iPoint,3,iPass} = x{iPoint,1};
-        ApmDataTable{iPoint,4,iPass} = y{iPoint,1};
-        ApmDataTable{iPoint,5,iPass} = z{iPoint,1};
+        % if isempty(ApmDataTable{iPass})
+        %     continue % this was break, why?
+        % end
+        x(iPoint,1) = LtEntryPoint(iPass) -(T(iPoint) * sind(CTR));
+        y(iPoint,1) = ApEntryPoint(iPass) - (T(iPoint) * cosd(ACPC) * cosd(CTR)) ;
+        z(iPoint,1) = AxEntryPoint(iPass) - (T(iPoint) * sind(ACPC) * cosd(CTR));
+        ApmDataTable{iPass}.x(iPoint) = x(iPoint,1);
+        ApmDataTable{iPass}.y(iPoint) = y(iPoint,1);
+        ApmDataTable{iPass}.z(iPoint) = z(iPoint,1);
     end
     
     %plot each x,y,z after calculating
     fprintf('plotting pass %d\n',iPass)
-    lH = plot3(aH,cell2mat(x),cell2mat(y),cell2mat(z),'-s');
+    lH = plot3(aH,x,y,z,'-s');
     set(lH,'hittest','off');
 end

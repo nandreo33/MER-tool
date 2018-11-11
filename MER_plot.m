@@ -22,7 +22,7 @@ function varargout = MER_plot(varargin)
 
 % Edit the above text to modify the response to help MER_plot
 
-% Last Modified by GUIDE v2.5 11-Sep-2018 23:14:21
+% Last Modified by GUIDE v2.5 09-Nov-2018 12:44:30
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,16 +58,18 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-CrwData = varargin{1}
-DbsData = varargin{2}
-apmPath = varargin{3}
-dest = varargin{4}
+CrwData = varargin{1};
+DbsData = varargin{2};
+glrPath = varargin{3};
+dest = varargin{4};
 
 daH = handles.disp_axes;
 taH = handles.traj_axes;
 
 % plot APM data
-ApmDataTable = build_apm_table(apmPath);
+ApmDataTable = build_apm_table(glrPath);
+ApmDataTable = repair_apm_table(ApmDataTable,'linear');
+extract_wav_files(glrPath); %TODO separate path?
 
 %TODO uncomment this
 %{
@@ -95,7 +97,7 @@ set(taH,'ButtonDownFcn',@mer_plot_callback);
 
 %store all critical objects as GUI data
 setappdata(hObject,'ApmDataTable',ApmDataTable);
-setappdata(hObject,'apmPath',apmPath);
+setappdata(hObject,'apmPath',glrPath);
 setappdata(hObject,'CrwData',CrwData);
 setappdata(hObject,'DbsData',DbsData);
 setappdata(hObject,'dest',dest);
@@ -162,3 +164,19 @@ function export_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 export_point_data(handles);
+
+
+% --- Executes on button press in play_audio_button.
+function play_audio_button_Callback(hObject, eventdata, handles)
+% hObject    handle to play_audio_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+wavPath = getappdata(handles.traj_axes,'SectionPath');
+[path,name,~] = fileparts(wavPath);
+wavPath = sprintf('%s\\wav\\%s_Ch1.wav',path,name);
+if isfile(wavPath)
+    [y, fs] = audioread(wavPath);
+    soundsc(y,fs)
+end
+
+

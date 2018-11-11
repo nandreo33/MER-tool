@@ -1,4 +1,4 @@
-function ApmDataTable = build_apm_table(apmPath)
+function ApmDataTable = build_apm_table(glrPath)
 %BUILD_APM_TABLE
 %{
     Starts ApmDataTable by reading files and filling depth and path
@@ -10,26 +10,25 @@ ARGS
 RETURNS
     ApmDataTable: cell array with entries defined below:
 
-            ApmDataTable{section,field,pass}
-
-             1: depth
-             2: path
-            (3: x)
-            (4: y)
-            (5: z)
+            ApmDataTable{pass}."field"(point)
+                               depth
+                               path
+                               x
+                               y
+                               z
 %}
 
 if ~nargin
-    apmPath = uigetdir('C:\','APM Folder');
+    glrPath = uigetdir('C:\','APM Folder');
 end
 
 %get initial file list
-tF = dir([apmPath '\*.apm']);
+tF = dir([glrPath '\*.apm']);
 
 %if no files found,
 if isempty(tF)
     % look for GLR files at apmPath
-    tGLR = dir([apmPath '\*.glr']);
+    tGLR = dir([glrPath '\*.glr']);
     answer = questdlg(['No .apm files found at that location. Do you want to use data from ' tGLR.name '? (This may take a while.)'],'MER tool');
     if strcmp(answer,'No') || strcmp(answer,'Cancel')
         ApmDataTable = [];
@@ -44,11 +43,11 @@ if isempty(tF)
     close(w);
     
     % try again for a file list
-    tF = dir([apmPath '\*.apm']);
+    tF = dir([glrPath '\*.apm']);
 end
 
-%TODO third dimension is fixed. make this a better data structure.
-ApmDataTable = cell(size(tF,1),5,2);
+talloc = table('Size',[12 5],'VariableTypes',{'double', 'string', 'double', 'double', 'double'},'VariableName',{'depth','path','x','y','z'});
+ApmDataTable = {};
 sprintf('%s',tF.name)
 
 iPass = 1;
@@ -56,6 +55,8 @@ expr = sprintf('(?<=^|.apm)[A-Za-z-_]+ [A-Za-z]+_Pass %d_[A-Za-z0-9]+_Snapshot -
 filename = regexp([tF.name],expr,'match');
 
 while ~isempty(filename)
+    temp = talloc;
+    
     filename = natsort(filename);
     
     N = size(filename,2);
@@ -68,16 +69,24 @@ while ~isempty(filename)
 
     for i = 1:N
         waitbar(i/N,w,sprintf('Extracting APM data (%d/%d)',i,N));
-        path = string(strcat(apmPath,'\',filename(i)));
+        path = string(strcat(glrPath,'\',filename(i)));
         t = APMReadData(path);
         dist = t.drive_data.depth;
+        if i > size(temp,1)
+            temp = [temp;talloc];
+        end
+        temp.path(i) = path; %path
         % if depth is empty, skip them
-        if ~isempty(dist) % TODO does this temporary fix work?
-            ApmDataTable(i,1,iPass) = {dist(2)/1000}; %depth
-            ApmDataTable(i,2,iPass) = {path}; %path
+        if ~isempty(dist)
+            temp.depth(i) = dist(2)/1000; %depth
         end
     end
     
+    if size(ApmDataTable,2) == 0
+        ApmDataTable = {temp};
+    else
+        ApmDataTable = [ApmDataTable {temp}];
+    end
     iPass = iPass + 1;
     expr = sprintf('(?<=^|.apm)[A-Za-z-_]+ [A-Za-z]+_Pass %d_[A-Za-z0-9]+_Snapshot - 3600.0 sec [0-9]+_.[0-9.]*apm',iPass);
     filename = regexp([tF.name],expr,'match');
