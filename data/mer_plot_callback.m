@@ -18,7 +18,7 @@ RETURNS
         if match ~= 0
             display_match(aH,match,iPass);
         end
-    end
+    end    
 
 end
 

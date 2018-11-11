@@ -35,7 +35,7 @@ if style == 1
     plot(aH,time,data)
 elseif style == 2
     %spike peaks
-    scatter(spike_section.local_index,spike_section.spikes(:,20),'r')
+    scatter(aH,spike_section.local_index,spike_section.spikes(:,20),'r')
 elseif style == 3
     %spike line
     plot(aH,sampled_spike_times',spike_section.spikes')

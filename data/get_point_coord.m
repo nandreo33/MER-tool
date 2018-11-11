@@ -59,29 +59,29 @@ RETURNS
         % TODO make this search faster?
         % search for matching ApmDataTable entry
         flag = 0;
-        for iPass = 1:size(ApmDataTable,3)
-            for iPoint = 1:size(ApmDataTable,1)
+        for iPass = 1:size(ApmDataTable,2)
+            for iPoint = 1:size(ApmDataTable{iPass},1)
                 if (...
-                        ~isempty(ApmDataTable{iPoint,3,iPass}) ...
-                        && x == ApmDataTable{iPoint,3,iPass} ...
-                        && y == ApmDataTable{iPoint,4,iPass} ...
-                        && z == ApmDataTable{iPoint,5,iPass} ...
+                        ~isempty(ApmDataTable{iPass}.x(iPoint)) ...
+                        && x == ApmDataTable{iPass}.x(iPoint) ...
+                        && y == ApmDataTable{iPass}.y(iPoint) ...
+                        && z == ApmDataTable{iPass}.z(iPoint) ...
                     )
                 
                     flag = 1;
                     
                     % set path to match APM file as GUI data
-                    setappdata(aH,'SectionPath',ApmDataTable{iPoint,2,iPass});
+                    setappdata(aH,'SectionPath',ApmDataTable{iPass}.path(iPoint));
                     
                     % get choice of style to display APM channel data as
                     style = get(display_style,'Value');
                     
-                    plot_section_data(daH,ApmDataTable{iPoint,2,iPass},style);   
+                    plot_section_data(daH,ApmDataTable{iPass}.path(iPoint),style);   
                     xlabel(daH,'Seconds');
                     
                     % update depth text display
                     depthH = findobj(f,'Tag','depth_disp');
-                    set(depthH,'String',['Pass ' num2str(iPass) ', Depth = ' num2str(ApmDataTable{iPoint,1,iPass}) 'mm']);                
+                    set(depthH,'String',['Pass ' num2str(iPass) ', Depth = ' num2str(ApmDataTable{iPass}.depth(iPoint)) 'mm']);                
                     break
                 end
             end
